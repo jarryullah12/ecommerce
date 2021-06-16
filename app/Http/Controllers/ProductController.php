@@ -6,104 +6,184 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Cart;
 use App\Models\Order;
+use Validator;
 use Session;
 use Illuminate\Support\Facades\DB;
 class ProductController extends Controller
 {
     //
+
+
     function index()
     {
-       $data= Product::all();
+        $data= DB::table('admins')
+        ->join('products','admins.id','products.id')
+        ->join('orders','orders.product_id','products.id')
+        ->get();
+
        return view('product',['products'=>$data]);
     }
-    function detail($id)
+
+    function addnew(Request $req)
     {
-        $data =Product::find($id);
-        return view('detail',['product'=>$data]);
-    }
-    function search(Request $req)
-    {
-        $data= Product::
-        where('name', 'like', '%'.$req->input('query').'%')
-        ->get();
-        return view('search',['products'=>$data]);
-    }
-    function addToCart(Request $req)
-    {
-        if($req->session()->has('user'))
-        {
-            $cart= new Cart;
-            $cart->user_id=$req->session()->get('user')['id'];
-            $cart->product_id=$req->product_id;
-            $cart->save();
-            return redirect('/');
+
+        $rules=array(
+            "name"=>'required | string | max:500',
+            "price"=>'required | integer | max:500',
+            "category"=>'required | string | max:500',
+            'gallery' =>'required|image|mimes:jpg,png,jpeg,gif,svg',
+            'gallery2' =>'required|image|mimes:jpg,png,jpeg,gif,svg',
+            'gallery3' =>'required|image|mimes:jpg,png,jpeg,gif,svg',
+
+            "description"=>'required | string | max:2000',
+            "short_description"=>'required | string | max:1000',
+
+
+
+        );
+          $Validator = Validator::make($req->all(),$rules);
+          if($Validator->fails()){
+           return view('addnewproducts')->withErrors($Validator);
+          }else{
+        $pro= new Product;
+        $pro->name=$req->name;
+        $pro->price=$req->price;
+        $pro->category=$req->category;
+
+        $pro->description=$req->description;
+        $pro->short_description=$req->short_description;
+
+
+         if($req->hasfile('gallery')){
+            $file = $req->file('gallery');
+            $ext = $file->getClientOriginalName();
+            $filename = time().'.'. $ext;
+            $file->move('storage/images/1/', $filename);
+
+            $pro->gallery = $filename;
+
+        }else{
+            return $req;
+            $pro->gallery='';
+        }
+        if($req->hasfile('gallery2')){
+            $file = $req->file('gallery2');
+            $ext = $file->getClientOriginalName();
+            $filename = time().'.'. $ext;
+            $file->move('storage/images/1/', $filename);
+
+            $pro->gallery2 = $filename;
+
+        }else{
+            return $req;
+            $pro->gallery2='';
+        }
+        if($req->hasfile('gallery3')){
+            $file = $req->file('gallery3');
+            $ext = $file->getClientOriginalName();
+            $filename = time().'.'. $ext;
+            $file->move('storage/images/1/', $filename);
+
+            $pro->gallery3 = $filename;
+
+        }else{
+            return $req;
+            $pro->gallery3='';
+        }
+
+            $pro->save();
+
+            return redirect('/') ;
+
+            }
+
+
 
         }
-        else
-        {
-            return redirect('/login');
+
+        function create(){
+
+            $products = Product::all();
+            return view('showproducts', compact('products'));
+
         }
-    }
-    static function cartItem()
-    {
-        $userId= Session::get('user')['id'];
-        return Cart::where('user_id',$userId)->count();
-    }
-    function cartList()
-    {
-        $userId= Session::get('user')['id'];
-       $data=  DB::table('cart')
-         ->join('products','cart.product_id','products.id')
-         ->select('products.*','cart.id as cart_id')
-         ->where('cart.user_id',$userId)
-         ->get();
 
-         return view('cartlist',['products'=>$data]);
 
-    }
-    function removeCart($id)
-    {
-         Cart::destroy($id);
-        return redirect('cartlist');
-    }
-    function orderNow()
-    {
-        $userId= Session::get('user')['id'];
-        $total = DB::table('cart')
-          ->join('products','cart.product_id','products.id')
-          ->where('cart.user_id',$userId)
-          ->sum('products.price');
- 
-          return view('ordernow',['total'=>$total]);  
-    }
-    function orderPlace(Request $req)
-    {
-        $userId= Session::get('user')['id'];
-        $allCart=Cart::where('user_id',$userId)->get();
-        foreach($allCart as $cart)
-        {
-            $order= new Order;
-            $order->product_id=$cart['product_id'];
-            $order->user_id=$cart['user_id'];
-            $order->address=$req->address;
-            $order->status="pending";
-            $order->payment_method=$req->payment;
-            $order->payment_status="pending";
-            $order->save();
-        }
-        Cart::where('user_id',$userId)->delete();
-        return redirect('/');
-        // return $req->input();
-    }
 
-    function myOrder()
-    {
-        $userId= Session::get('user')['id'];
-        $orders= DB::table('orders')
-          ->join('products','orders.product_id','products.id')
-          ->where('orders.user_id',$userId)
-          ->get();
- 
-          return view('myorder',['orders'=>$orders]); 
-    }
+        function showpro(){
+            $pro = Product::all();
+            return view('showproducts',['products'=>$pro]);
+          }
+          function delete($id){
+            $pro= Product::find($id);
+            $pro->delete();
+            return redirect('showproducts');
+          }
+
+          function editpro($id){
+            $pro= Product::find($id);
+            return view('editproducts',['pro'=>$pro]);
+          }
+          function update(Request $req){
+            $pro = Product::find($req->id);
+            $pro->name=$req->name;
+            $pro->price=$req->price;
+            $pro->category=$req->category;
+
+            $pro->description=$req->description;
+            $pro->short_description=$req->short_description;
+
+            if($req->hasfile('gallery')){
+                $file = $req->file('gallery');
+                $ext = $file->getClientOriginalName();
+                $filename = time().'.'. $ext;
+                $file->move('storage/images/1/', $filename);
+
+                $pro->gallery = $filename;
+
+            }else{
+                return $req;
+                $pro->gallery='';
+            }
+            if($req->hasfile('gallery2')){
+                $file = $req->file('gallery2');
+                $ext = $file->getClientOriginalName();
+                $filename = time().'.'. $ext;
+                $file->move('storage/images/1/', $filename);
+
+                $pro->gallery2 = $filename;
+
+            }else{
+                return $req;
+                $pro->gallery2='';
+            }
+            if($req->hasfile('gallery3')){
+                $file = $req->file('gallery3');
+                $ext = $file->getClientOriginalName();
+                $filename = time().'.'. $ext;
+                $file->move('storage/images/1/', $filename);
+                $pro->gallery3 = $filename;
+            }else{
+                return $req;
+                $pro->gallery3='';
+            }
+
+
+            $pro->save();
+            return redirect('showproducts');
+          }
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+

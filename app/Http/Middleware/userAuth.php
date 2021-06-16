@@ -22,5 +22,6 @@ class UserAuth
             return redirect('/');
         }
         return $next($request);
+
     }
 }

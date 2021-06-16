@@ -1,10 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\adminController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CommentsController;
 use App\Http\Controllers\photoController;
+use App\Http\Controllers\CollectionController;
+
+
 
 
 
@@ -21,46 +24,30 @@ use App\Http\Controllers\photoController;
 Route::get('/welcome', function () {
     return view('/welcome');
 });
+
+// // ...................................admin area.........................
 Route::get('/logout', function () {
-    Session::forget('user');
+    Session::forget('admin');
     return redirect('/login');
 });
-
-Route::get('/status', function () {
-    return view('/front');
-});
-
-
-
-
 Route::view("/login","login");
 Route::view("/register","register");
-Route::post("login",[UserController::class,'login']);
-Route::post("register",[UserController::class,'register']);
+Route::post("/login",[adminController::class,'login']);
+Route::post("register",[adminController::class,'register']);
+Route::get('listupdate',[adminController::class,'show']);
+Route::get('delete/{id}',[adminController::class,'delete']);
+Route::get('profile/{id}',[adminController::class,'showData']);
+Route::post('profile',[adminController::class,'update']);
 Route::get("/",[ProductController::class,'index']);
-Route::get("detail/{id}",[ProductController::class,'detail']);
-Route::get("search",[ProductController::class,'search']);
-Route::post("add_to_cart",[ProductController::class,'addToCart']);
-Route::get("cartlist",[ProductController::class,'cartList']);
-Route::get("removecart/{id}",[ProductController::class,'removeCart']);
-Route::get("ordernow",[ProductController::class,'orderNow']);
-Route::post("orderplace",[ProductController::class,'orderPlace']);
-Route::get("myorder",[ProductController::class,'myOrder']);
 
-Route::post("/comment",[CommentsController::class,'store']);
-Route::post("/toggle-approve",[CommentsController::class,'approval']);
+Route::view("addnewproducts","addnewproducts");
+Route::post("addnewproducts",[ProductController::class,'addnew']);
+Route::get("showproducts",[ProductController::class,'create']);
 
-Route::get("/status",[CommentsController::class,'index']);
-Route::get("/dash",[CommentsController::class,'dash']);
-
-
-
-Route::post("/upload",[photoController::class,'store']);
-
-Route::get("/upload",[UserController::class,'create']);
-
-
-
+Route::get('showproducts',[ProductController::class,'showpro']);
+Route::get('delete/{id}',[ProductController::class,'delete']);
+Route::get('editproducts/{id}',[ProductController::class,'editpro']);
+Route::post('editproducts',[ProductController::class,'update']);
 
 
 
