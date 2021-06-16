@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-
+use Illuminate\Support\Facades\Crypt;
 use Validator;
-
+use Session;
 use Illuminate\Support\Facades\Hash;
 class UserController extends Controller
 {
@@ -33,9 +33,9 @@ class UserController extends Controller
 
 
          $user= User::where(['email'=>$req->email])->first();
-         if(!$user ||  !Hash::check($req->password,$user->password))
+         if(base64_decode($req->password,$user->password))
          {
-             return "username or password is not correct";
+             return "email or password is not correct";
          }
          else
          {
@@ -47,11 +47,10 @@ class UserController extends Controller
     function register(Request $req)
     {
         $rules=array(
-            "name"=>"required | string | max:82 | unique:users",
+            "username"=>"required | string | max:82 | unique:users",
             "email"=>"required | email | unique:users",
-            "dob"=>"required | date | before:2000-01-01",
+
             "confirm_password"=>'required',
-            'image' => 'required|image|mimes:jpg,png,jpeg,gif,svg|max:34|dimensions:min_width=100,min_height=100,max_width=1000,max_height=1000',
             'password' => ['required_with:confirm_password|same:confirm_password',
             'min:12',
             'max:32',
@@ -69,38 +68,57 @@ class UserController extends Controller
 
 
         $user= new User;
-        $user->name=$req->name;
+        $user->username=$req->username;
         $user->email=$req->email;
-        $user->password=Hash::make($req->password);
-        $user->confirm_password=Hash::make($req->confirm_password);
-        $user->dob=$req->dob;
+        $user->gender=$req->gender;
+
+        $user->password=base64_encode($req->password);
+        $user->confirm_password=base64_encode($req->confirm_password);
 
 
-    if($req->hasfile('image')){
-        $file = $req->file('image');
-        $originalName = $file->getClientOriginalName();
-        $filename = time().'.'. $originalName;
-        $file->storeAs('public/images/', $filename);
-        $size = $req->file('image')->getsize();
-        $user->image = $filename;
-        $user->size = $size;
-    }else{
-        return $req;
-        $user->image='';
-    }
+
 
 
         $user->save();
-        return view("login",$user);
+        return view("login", $user);
 
 
          }
 
 
     }
-    function create(){
+    function show(){
+       $userid= Session::get('user')['id'];
+        $data = User::where('id',$userid)->get();
 
-        $photos = User::all();
-        return view('upload', compact('photos'));
-    }
+
+        return view('listupdate',['lists'=>$data]);
+      }
+      function delete($id){
+        $data= User::find($id);
+        $data->delete();
+        return redirect('listupdate');
+      }
+
+
+
+    function showData($id){
+        $data= User::find($id);
+        return view('profile',['data'=>$data]);
+      }
+
+
+
+
+      function update(Request $req){
+        $data = User::find($req->id);
+        $data->username=$req->username;
+        $data->password=base64_encode($req->password);
+        $data->confirm_password=base64_encode($req->confirm_password);
+        $data->gender=$req->gender;
+        $data->email=$req->email;
+        $data->save();
+        return redirect('/listupdate');
+      }
+
 }

@@ -6,16 +6,24 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Cart;
 use App\Models\Order;
+
 use Session;
 use Illuminate\Support\Facades\DB;
 class ProductController extends Controller
 {
     //
+
+    function shoes()
+    {
+       $data= Product::paginate(6);
+       return view('shoes',['products'=>$data]);
+    }
     function index()
     {
-       $data= Product::all();
+       $data= Product::all()->random(6);
        return view('product',['products'=>$data]);
     }
+
     function detail($id)
     {
         $data =Product::find($id);
@@ -36,7 +44,7 @@ class ProductController extends Controller
             $cart->user_id=$req->session()->get('user')['id'];
             $cart->product_id=$req->product_id;
             $cart->save();
-            return redirect('/');
+            return redirect('/cartlist');
 
         }
         else
@@ -48,9 +56,11 @@ class ProductController extends Controller
     {
         $userId= Session::get('user')['id'];
         return Cart::where('user_id',$userId)->count();
+
     }
     function cartList()
     {
+        if(session()->has('user')){
         $userId= Session::get('user')['id'];
        $data=  DB::table('cart')
          ->join('products','cart.product_id','products.id')
@@ -59,7 +69,9 @@ class ProductController extends Controller
          ->get();
 
          return view('cartlist',['products'=>$data]);
-
+        }else{
+            return redirect('/');
+        }
     }
     function removeCart($id)
     {
@@ -68,14 +80,19 @@ class ProductController extends Controller
     }
     function orderNow()
     {
+        if(session()->has('user')){
         $userId= Session::get('user')['id'];
-        $total = DB::table('cart')
+        $totalprice = DB::table('cart')
           ->join('products','cart.product_id','products.id')
           ->where('cart.user_id',$userId)
           ->sum('products.price');
- 
-          return view('ordernow',['total'=>$total]);  
+
+          return view('ordernow',['totalprice'=>$totalprice]);
+        }else{
+            return redirect('/');
+        }
     }
+
     function orderPlace(Request $req)
     {
         $userId= Session::get('user')['id'];
@@ -98,12 +115,51 @@ class ProductController extends Controller
 
     function myOrder()
     {
+        if(session()->has('user')){
         $userId= Session::get('user')['id'];
         $orders= DB::table('orders')
           ->join('products','orders.product_id','products.id')
           ->where('orders.user_id',$userId)
           ->get();
- 
-          return view('myorder',['orders'=>$orders]); 
+        return view('myorder',['orders'=>$orders]);
+
+        }else{
+            return redirect('/');
+        }
+
     }
+    function cartb()
+    {
+        if(session()->has('user')){
+        $userId= Session::get('user')['id'];
+       $data=  DB::table('cart')
+         ->join('products','cart.product_id','products.id')
+         ->select('products.*','cart.id as cart_id','cart.product_price')
+         ->where('cart.user_id', $userId)
+         ->get();
+
+         return view('ordernow',['products'=>$data]);
+        }else{
+            return redirect('/');
+        }
+    }
+    function addInCart(Request $req)
+    {
+        if($req->session()->has('user'))
+        {
+            $cart= new Cart;
+            $cart->user_id=$req->session()->get('user')['id'];
+            $cart->product_id=$req->product_id;
+            $cart->product_price=$req->product_price;
+
+            $cart->save();
+            return redirect('/ordernow');
+
+        }
+        else
+        {
+            return redirect('/login');
+        }
+    }
+
 }
